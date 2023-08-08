@@ -5,6 +5,7 @@ go 1.20
 require (
 	676f.dev/utilities v0.1.0
 	github.com/goburrow/modbus v0.1.0
+	github.com/shopspring/decimal v1.3.1
 )
 
 require github.com/goburrow/serial v0.1.0 // indirect
