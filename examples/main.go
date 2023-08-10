@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	renogyModbusClient, err := gorenogymodbus.NewModbusClient(log.New(os.Stdout, "test: ", log.LstdFlags), "/dev/cu.usbserial-D30F06G2")
+	renogyModbusClient, err := gorenogymodbus.NewModbusClient(log.New(os.Stdout, "test: ", log.LstdFlags), "/dev/tty.usbserial-D30F06G2")
 	if err != nil {
 		panic(err)
 	}
@@ -20,12 +20,10 @@ func main() {
 		panic(err)
 	}
 
-	// err = dump(data)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	dci := gorenogymodbus.Parse(data)
+	dci, err := gorenogymodbus.Parse(data)
+	if err != nil {
+		panic(err)
+	}
 
 	b, err := json.Marshal(dci)
 	if err != nil {

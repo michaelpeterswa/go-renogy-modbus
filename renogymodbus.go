@@ -99,11 +99,11 @@ const (
 	ChargeMOSShortCircuit
 	AntiReverseMOSShort
 	SolarPanelReverselyConnected
-	SolarPanelWorkingPointOvervoltage
+	SolarPanelWorkingPointOverVoltage
 	SolarPanelCounterCurrent
 	PhotovoltaicInputSideOverVoltage
 	PhotovoltaicInputSideShortCircuit
-	PhotovoltaicInputOverpower
+	PhotovoltaicInputOverPower
 	AmbientTemperatureTooHigh
 	ControllerTemperatureTooHigh
 	LoadOverPowerOrLoadOverCurrent
@@ -113,17 +113,33 @@ const (
 	BatteryOverDischarge
 )
 
+var ControllerFaultsMap = map[int]ControllerFault{
+	30: ChargeMOSShortCircuit,
+	29: AntiReverseMOSShort,
+	28: SolarPanelReverselyConnected,
+	27: SolarPanelWorkingPointOverVoltage,
+	26: SolarPanelCounterCurrent,
+	25: PhotovoltaicInputSideOverVoltage,
+	24: PhotovoltaicInputSideShortCircuit,
+	23: PhotovoltaicInputOverPower,
+	22: AmbientTemperatureTooHigh,
+	21: ControllerTemperatureTooHigh,
+	20: LoadOverPowerOrLoadOverCurrent,
+	19: LoadShortCircuit,
+	18: BatteryUnderVoltage,
+	17: BatteryOverVoltage,
+	16: BatteryOverDischarge,
+}
+
 func (cf ControllerFault) String() string {
 	switch cf {
-	case NoFault:
-		return "no fault"
 	case ChargeMOSShortCircuit:
 		return "charge mos short circuit"
 	case AntiReverseMOSShort:
 		return "anti reverse mos short"
 	case SolarPanelReverselyConnected:
 		return "solar panel reversely connected"
-	case SolarPanelWorkingPointOvervoltage:
+	case SolarPanelWorkingPointOverVoltage:
 		return "solar panel working point overvoltage"
 	case SolarPanelCounterCurrent:
 		return "solar panel counter current"
@@ -131,7 +147,7 @@ func (cf ControllerFault) String() string {
 		return "photovoltaic input side over voltage"
 	case PhotovoltaicInputSideShortCircuit:
 		return "photovoltaic input side short circuit"
-	case PhotovoltaicInputOverpower:
+	case PhotovoltaicInputOverPower:
 		return "photovoltaic input overpower"
 	case AmbientTemperatureTooHigh:
 		return "ambient temperature too high"
@@ -184,11 +200,16 @@ type DynamicControllerInformation struct {
 	StreetLightStatus                   bool            `json:"street_light_status"`                     // 0x120 (eight higher bits)
 	StreetLightBrightness               int             `json:"street_light_brightness"`                 // 0x120 (eight higher bits)
 	ChargingState                       string          `json:"charging_state"`                          // 0x120 (eight lower bits)
-	ControllerFault                     string          `json:"controller_fault"`                        // 0x121-122
+	ControllerFaults                    []string        `json:"controller_faults"`                       // 0x121-122
 }
 
-func Parse(dataBytes []byte) DynamicControllerInformation {
-	return DynamicControllerInformation{
+func Parse(dataBytes []byte) (*DynamicControllerInformation, error) {
+	faults, err := getControllerFaults(dataBytes[66:70])
+	if err != nil {
+		return nil, err
+	}
+
+	return &DynamicControllerInformation{
 		BatteryCapacitySOC:                  int(binary.BigEndian.Uint16(dataBytes[0:2])),                                             // 0x100
 		BatteryVoltage:                      decimalFloatingPointFixed2(float64(binary.BigEndian.Uint16(dataBytes[2:4])) * 0.1),       // 0x101
 		ChargingCurrent:                     decimalFloatingPointFixed2(float64(binary.BigEndian.Uint16(dataBytes[4:6])) * 0.01),      // 0x102
@@ -220,8 +241,8 @@ func Parse(dataBytes []byte) DynamicControllerInformation {
 		StreetLightStatus:                   dataBytes[64]&0x80 != 0,                                                                  // 0x120 (eight higher bits)
 		StreetLightBrightness:               int(dataBytes[64] & 0x7F),                                                                // 0x120 (eight higher bits) may or may not be correct logic
 		ChargingState:                       getChargingState(dataBytes[65]).String(),
-		ControllerFault:                     getControllerFault(dataBytes[66:70]).String(),
-	}
+		ControllerFaults:                    faults,
+	}, nil
 }
 
 func decimalFloatingPointFixed2(f float64) decimal.Decimal {
@@ -253,6 +274,25 @@ func getChargingState(b byte) ChargingState {
 	}
 }
 
-func getControllerFault(b []byte) ControllerFault {
-	return NoFault // currently unimplemented
+func GetControllerFaults(b []byte) ([]string, error) {
+	return getControllerFaults(b)
+}
+
+func getControllerFaults(b []byte) ([]string, error) {
+	if len(b) != 4 {
+		return nil, fmt.Errorf("invalid controller fault byte array length: %d", len(b))
+	}
+
+	totalBits := len(b) * 8
+	bytesInt := binary.BigEndian.Uint32(b)
+
+	var faults []string
+
+	firstErrorBit := 16
+	for i := firstErrorBit; i < totalBits; i++ {
+		if bytesInt&(1<<uint(i)) != 0 {
+			faults = append(faults, ControllerFaultsMap[i].String())
+		}
+	}
+	return faults, nil
 }
