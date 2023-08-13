@@ -4,52 +4,76 @@ import (
 	"testing"
 
 	gorenogymodbus "github.com/michaelpeterswa/go-renogy-modbus"
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetControllerFaults(t *testing.T) {
+func TestSynthesize(t *testing.T) {
 	tests := []struct {
-		Name           string
-		InputBytes     []byte
-		ExpectedErrors []string
+		Name  string
+		DCI   gorenogymodbus.DynamicControllerInformation
+		Bytes []byte
 	}{
 		{
-			Name:           "no error flags set",
-			InputBytes:     []byte{0b00000000, 0b00000000, 0b00000000, 0b00000000},
-			ExpectedErrors: nil,
-		},
-		{
-			Name:       "single error flag set",
-			InputBytes: []byte{0b00001000, 0b00000000, 0b0000000, 0b00000000},
-			ExpectedErrors: []string{
-				"solar panel working point overvoltage",
+			Name: "simple",
+			DCI: gorenogymodbus.DynamicControllerInformation{
+				BatteryCapacitySOC:                  100,                                         // Percentage
+				BatteryVoltage:                      decimal.NewFromFloat(13.6),                  // Volts
+				ChargingCurrent:                     decimal.NewFromFloat(1.5),                   // Amperes
+				ControllerTemperature:               25,                                          // Celsius
+				BatteryTemperature:                  0,                                           // Celsius
+				StreetLightLoadVoltage:              decimal.NewFromFloat(13.6),                  // Volts
+				StreetLightLoadCurrent:              decimal.NewFromFloat(4),                     // Amperes
+				StreetLightLoadPower:                decimal.NewFromFloat(54.4),                  // Watts
+				SolarPanelVoltage:                   decimal.NewFromFloat(16.6),                  // Volts
+				SolarPanelCurrent:                   decimal.NewFromFloat(1.1),                   // Amperes
+				ChargingPower:                       decimal.NewFromFloat(18.26),                 // Watts
+				BatteryMinimumVoltageCurrentDay:     decimal.NewFromFloat(0),                     // Volts
+				BatteryMaximumVoltageCurrentDay:     decimal.NewFromFloat(13.2),                  // Volts
+				MaximumChargingCurrentCurrentDay:    decimal.NewFromFloat(1.5),                   // Amperes
+				MaximumDischargingCurrentCurrentDay: decimal.NewFromFloat(4),                     // Amperes
+				MaximumChargingPowerCurrentDay:      decimal.NewFromFloat(19.8),                  // Watts
+				MaximumDischargingPowerCurrentDay:   decimal.NewFromFloat(12),                    // Amperes
+				ChargingAmpHoursCurrentDay:          decimal.NewFromFloat(4),                     // Amperes
+				DischargingAmpHoursCurrentDay:       decimal.NewFromFloat(4),                     // Amperes
+				PowerGenerationCurrentDay:           decimal.NewFromFloat(3),                     // Kilowatt/hours
+				PowerConsumptionCurrentDay:          decimal.NewFromFloat(1),                     // Kilowatt/hours
+				TotalOperatingDays:                  12,                                          // int
+				TotalBatteryOverDischarges:          0,                                           // int
+				TotalBatteryFullCharges:             10,                                          // int
+				TotalChargingAmpHours:               decimal.NewFromFloat(10),                    // Amperes
+				TotalDischargingAmpHours:            decimal.NewFromFloat(10),                    // Amperes
+				CumulativePowerGeneration:           decimal.NewFromFloat(10),                    // Kilowatt/hours
+				CumulativePowerConsumption:          decimal.NewFromFloat(10),                    // Kilowatt/hours
+				StreetLightStatus:                   false,                                       // bool
+				StreetLightBrightness:               0,                                           // Percentage
+				ChargingState:                       gorenogymodbus.ChargingDeactivated.String(), // string
+				ControllerFaults:                    nil,                                         // []string
 			},
-		},
-		{
-			Name:           "dual error flag set",
-			InputBytes:     []byte{0b0011000, 0b00000000, 0b0000000, 0b00000000},
-			ExpectedErrors: []string{"solar panel working point overvoltage", "solar panel reversely connected"},
-		},
-		{
-			Name:       "all error flag set",
-			InputBytes: []byte{0b01111111, 0b11111111, 0b10000000, 0b00000000},
-			ExpectedErrors: []string{
-				"battery over discharge", "battery over voltage", "battery under voltage", "load short circuit",
-				"load over power or load over current", "controller temperature too high", "ambient temperature too high",
-				"photovoltaic input overpower", "photovoltaic input side short circuit", "photovoltaic input side over voltage",
-				"solar panel counter current", "solar panel working point overvoltage", "solar panel reversely connected",
-				"anti reverse mos short", "charge mos short circuit",
+			Bytes: []byte{
+				0x00, 0x64, 0x00, 0x88, 0x00,
+				0x96, 0x19, 0x00, 0x00, 0x88,
+				0x01, 0x90, 0x00, 0x36, 0x00,
+				0xa6, 0x00, 0x6e, 0x00, 0x12,
+				0x00, 0x00, 0x00, 0x00, 0x00,
+				0x84, 0x00, 0x96, 0x01, 0x90,
+				0x00, 0x13, 0x00, 0x0c, 0x00,
+				0x04, 0x00, 0x04, 0x75, 0x30,
+				0x75, 0x30, 0x00, 0x0c, 0x00,
+				0x00, 0x00, 0x0a, 0x00, 0x00,
+				0x00, 0x0a, 0x00, 0x00, 0x00,
+				0x0a, 0x00, 0x01, 0x86, 0xa0,
+				0x00, 0x01, 0x86, 0xa0, 0x00,
+				0x00, 0x00, 0x00, 0x00, 0x00,
 			},
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
-			result, err := gorenogymodbus.GetControllerFaults(tc.InputBytes)
-			if err != nil {
-				assert.Fail(t, err.Error())
-			}
-			assert.ElementsMatch(t, tc.ExpectedErrors, result)
+			result, err := tc.DCI.Synthesize()
+			assert.NoError(t, err)
+			assert.Equal(t, tc.Bytes, result)
 		})
 	}
 }

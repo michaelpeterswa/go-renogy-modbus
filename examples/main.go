@@ -3,19 +3,57 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
-	"os"
 
 	gorenogymodbus "github.com/michaelpeterswa/go-renogy-modbus"
 )
 
 func main() {
-	renogyModbusClient, err := gorenogymodbus.NewModbusClient(log.New(os.Stdout, "test: ", log.LstdFlags), "/dev/tty.usbserial-D30F06G2")
-	if err != nil {
-		panic(err)
-	}
 
-	data, err := renogyModbusClient.ReadData()
+	// -=-=-=-=-=-=-=-
+	// option 1
+	// -=-=-=-=-=-=-=-
+
+	// renogyModbusClient, err := gorenogymodbus.NewModbusClient(log.New(os.Stdout, "test: ", log.LstdFlags), "/dev/tty.usbserial-D30F06G2")
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// data, err := renogyModbusClient.ReadData()
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// err = dump(data)
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// -=-=-=-=-=-=-=-
+	// option 2
+	// -=-=-=-=-=-=-=-
+
+	// var data = []byte{
+	// 	0x00, 0x64, 0x00, 0x88, 0x00,
+	// 	0x96, 0x19, 0x00, 0x00, 0x88,
+	// 	0x01, 0x90, 0x00, 0x36, 0x00,
+	// 	0xa6, 0x00, 0x6e, 0x00, 0x12,
+	// 	0x00, 0x00, 0x00, 0x00, 0x00,
+	// 	0x84, 0x00, 0x96, 0x01, 0x90,
+	// 	0x00, 0x13, 0x00, 0x0c, 0x00,
+	// 	0x04, 0x00, 0x04, 0x75, 0x30,
+	// 	0x75, 0x30, 0x00, 0x0c, 0x00,
+	// 	0x00, 0x00, 0x0a, 0x00, 0x00,
+	// 	0x00, 0x0a, 0x00, 0x00, 0x00,
+	// 	0x0a, 0x00, 0x01, 0x86, 0xa0,
+	// 	0x00, 0x01, 0x86, 0xa0, 0x00,
+	// 	0x00, 0x00, 0x00, 0x00, 0x00,
+	// }
+
+	// -=-=-=-=-=-=-=-
+	// option 3
+	// -=-=-=-=-=-=-=-
+
+	data, err := load("2023-08-10-1uwviv.bin")
 	if err != nil {
 		panic(err)
 	}
