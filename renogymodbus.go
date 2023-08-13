@@ -40,7 +40,7 @@ func NewModbusClient(logger *log.Logger, address string) (*ModbusClient, error) 
 func (mc *ModbusClient) ReadData() ([]byte, error) {
 	var (
 		dataStartAddress uint16 = 0x100
-		dataQuantity     uint16 = 34
+		dataQuantity     uint16 = 35
 	)
 
 	res, err := mc.readHoldingRegisters(dataStartAddress, dataQuantity)
