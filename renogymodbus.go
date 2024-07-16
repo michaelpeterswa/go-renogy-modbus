@@ -15,12 +15,13 @@ type ModbusClient struct {
 	Client modbus.Client
 }
 
-func NewModbusClient(logger *log.Logger, address string) (*ModbusClient, error) {
+func NewModbusClient(logger *log.Logger, address string, idleTimeout time.Duration) (*ModbusClient, error) {
 	// Modbus RTU/ASCII
 	handler := modbus.NewRTUClientHandler(address)
 	handler.BaudRate = 9600
 	handler.SlaveId = 1
 	handler.Timeout = 1 * time.Second
+	handler.IdleTimeout = idleTimeout
 	handler.StopBits = 1
 	handler.DataBits = 8
 	handler.Parity = "N"
